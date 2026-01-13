@@ -296,6 +296,9 @@ class BreakableColumn extends Widget with SpanningWidget {
       if (i == _context.currentChildIndex &&
           _context.currentWrappedChild != null) {
         child = _context.currentWrappedChild!;
+        if (_context.childContext != null && child is SpanningWidget) {
+          (child).restoreContext(_context.childContext!);
+        }
       }
 
       // Add spacing between children
@@ -319,8 +322,14 @@ class BreakableColumn extends Widget with SpanningWidget {
         if (currentY == 0 && childHeight > maxHeight) {
           // Child is larger than the page and we're at the top
           if (wrapOversized) {
+            // Upgrade RichText to span if possible to avoid cutting text
+            if (child is RichText && (child).overflow == TextOverflow.visible) {
+              child = (child).copyWith(overflow: TextOverflow.span);
+            }
+
             // Wrap in AutoPageBreak if not already wrapped
-            if (child is! AutoPageBreak) {
+            if (child is! AutoPageBreak &&
+                !(child is SpanningWidget && (child).canSpan)) {
               child = AutoPageBreak(child: child);
             }
             child.layout(
@@ -336,9 +345,9 @@ class BreakableColumn extends Widget with SpanningWidget {
             currentY += child.box!.height;
 
             // Check if the auto-break child has more content
-            if (child.hasMoreWidgets) {
+            if (child is SpanningWidget && (child).hasMoreWidgets) {
               _context.currentWrappedChild = child;
-              _context.childContext = (child as SpanningWidget).saveContext();
+              _context.childContext = (child).saveContext();
               break;
             }
             _context.currentWrappedChild = null;
@@ -430,7 +439,7 @@ class BreakableColumnContext extends WidgetContext {
   void apply(BreakableColumnContext other) {
     currentChildIndex = other.currentChildIndex;
     currentWrappedChild = other.currentWrappedChild;
-    childContext = other.childContext;
+    childContext = other.childContext?.clone();
   }
 
   @override

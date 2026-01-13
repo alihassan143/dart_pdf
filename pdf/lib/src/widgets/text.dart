@@ -682,6 +682,30 @@ class RichText extends Widget with SpanningWidget {
     this.hyphenation,
   });
 
+  RichText copyWith({
+    InlineSpan? text,
+    TextAlign? textAlign,
+    TextDirection? textDirection,
+    bool? softWrap,
+    bool? tightBounds,
+    double? textScaleFactor,
+    int? maxLines,
+    TextOverflow? overflow,
+    Hyphenation? hyphenation,
+  }) {
+    return RichText(
+      text: text ?? this.text,
+      textAlign: textAlign ?? this.textAlign,
+      textDirection: textDirection ?? this.textDirection,
+      softWrap: softWrap ?? this.softWrap,
+      tightBounds: tightBounds ?? this.tightBounds,
+      textScaleFactor: textScaleFactor ?? this.textScaleFactor,
+      maxLines: maxLines ?? this.maxLines,
+      overflow: overflow ?? this.overflow,
+      hyphenation: hyphenation ?? this.hyphenation,
+    );
+  }
+
   static bool debug = false;
 
   final InlineSpan text;
