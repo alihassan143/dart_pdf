@@ -59,6 +59,10 @@ class WrapContext extends WidgetContext {
 
   @override
   String toString() => '$runtimeType first:$firstChild last:$lastChild';
+
+  @override
+  bool isEqualTo(WrapContext other) =>
+      firstChild == other.firstChild && lastChild == other.lastChild;
 }
 
 /// A widget that displays its children in multiple horizontal or vertical runs.

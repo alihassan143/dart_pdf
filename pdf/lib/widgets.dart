@@ -17,6 +17,7 @@
 export 'package:barcode/barcode.dart';
 
 export 'src/widgets/annotations.dart';
+export 'src/widgets/auto_page_break.dart';
 export 'src/widgets/barcode.dart';
 export 'src/widgets/basic.dart';
 export 'src/widgets/border_radius.dart';

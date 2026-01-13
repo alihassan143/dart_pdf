@@ -20,6 +20,7 @@ import 'package:meta/meta.dart';
 import 'package:vector_math/vector_math_64.dart';
 
 import '../../pdf.dart';
+import 'auto_page_break.dart';
 import 'basic.dart';
 import 'document.dart';
 import 'flex.dart';
@@ -37,7 +38,11 @@ abstract class WidgetContext {
 
   /// Called before relayout to restore the saved state and
   /// restart the layout in the same conditions
+  /// Called before relayout to restore the saved state and
+  /// restart the layout in the same conditions
   void apply(covariant WidgetContext other);
+
+  bool isEqualTo(covariant WidgetContext other) => false;
 }
 
 mixin SpanningWidget on Widget {
@@ -158,6 +163,7 @@ class MultiPage extends Page {
     this.footer,
     ThemeData? theme,
     this.maxPages = 20,
+    this.autoPageBreak = false,
     PageOrientation? orientation,
     EdgeInsetsGeometry? margin,
     TextDirection? textDirection,
@@ -192,6 +198,15 @@ class MultiPage extends Page {
   /// The maximum number of pages allowed before raising an error.
   /// This is not checked with a Release build.
   final int maxPages;
+
+  /// Whether to automatically break oversized widgets across pages.
+  ///
+  /// When enabled, widgets that exceed the page height will be automatically
+  /// wrapped in [AutoPageBreak] widgets, which clip and continue them on
+  /// subsequent pages. This prevents the "Widget won't fit" exception.
+  ///
+  /// Defaults to false for backward compatibility.
+  final bool autoPageBreak;
 
   void _paintChild(
       Context context, Widget child, double x, double y, double pageHeight) {
@@ -338,12 +353,49 @@ class MultiPage extends Page {
           continue;
         }
 
-        // Else we crash if the widget is too big and cannot be separated
+        // Handle widget that's too big and cannot span
         if (!canSpan) {
+          // If autoPageBreak is enabled, wrap the widget in AutoPageBreak
+          if (autoPageBreak) {
+            // Replace the original child with an AutoPageBreak wrapper
+            final wrappedChild = AutoPageBreak(child: child);
+
+            // Treat it as a spanning widget and process it
+            wrappedChild.layout(context,
+                constraints.copyWith(maxHeight: offsetStart - offsetEnd),
+                parentUsesSize: false);
+            assert(wrappedChild.box != null);
+            widgetContext = wrappedChild.saveContext();
+
+            _pages.last.widgets.add(
+              _MultiPageWidget(
+                child: wrappedChild,
+                constraints:
+                    constraints.copyWith(maxHeight: offsetStart - offsetEnd),
+                widgetContext: widgetContext.clone(),
+              ),
+            );
+
+            // Check if there's more content to render
+            if (wrappedChild.hasMoreWidgets) {
+              // Replace the original child in the list with the wrapped one
+              children[_index] = wrappedChild;
+              // Schedule a new page
+              context = null;
+              continue;
+            } else {
+              sameCount = 0;
+              _index++;
+              context = null;
+              continue;
+            }
+          }
+
           throw Exception(
               'Widget won\'t fit into the page as its height (${child.box!.height}) '
               'exceed a page height (${pageHeight - pageHeightMargin}). '
-              'You probably need a SpanningWidget or use a single page layout');
+              'You probably need a SpanningWidget, use a single page layout, '
+              'or set autoPageBreak: true on the MultiPage');
         }
 
         final span = child;
@@ -357,7 +409,43 @@ class MultiPage extends Page {
             constraints.copyWith(maxHeight: offsetStart - offsetEnd);
         span.layout(context, localConstraints, parentUsesSize: false);
         assert(span.box != null);
+
         widgetContext = span.saveContext();
+
+        // Check if the spanning widget actually made progress
+        if (autoPageBreak &&
+            savedContext != null &&
+            widgetContext.isEqualTo(savedContext) &&
+            child is! AutoPageBreak) {
+          // The spanning widget didn't make any progress (context is unchanged)
+          // Wrap the original child in AutoPageBreak instead
+          final wrappedChild = AutoPageBreak(child: child);
+
+          // Apply the saved context if needed (though AutoPageBreak doesn't use it)
+          wrappedChild.layout(context, localConstraints, parentUsesSize: false);
+          assert(wrappedChild.box != null);
+          widgetContext = wrappedChild.saveContext();
+
+          _pages.last.widgets.add(
+            _MultiPageWidget(
+              child: wrappedChild,
+              constraints: localConstraints,
+              widgetContext: widgetContext.clone(),
+            ),
+          );
+
+          // Check if there's more content
+          if (wrappedChild.hasMoreWidgets) {
+            children[_index] = wrappedChild;
+            context = null;
+            continue;
+          } else {
+            sameCount = 0;
+            _index++;
+            context = null;
+            continue;
+          }
+        }
         _pages.last.widgets.add(
           _MultiPageWidget(
             child: span,

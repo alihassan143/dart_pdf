@@ -658,6 +658,13 @@ class RichTextContext extends WidgetContext {
   @override
   String toString() =>
       '$runtimeType Offset: $startOffset -> $endOffset  Span: $spanStart -> $spanEnd';
+
+  @override
+  bool isEqualTo(RichTextContext other) =>
+      startOffset == other.startOffset &&
+      endOffset == other.endOffset &&
+      spanStart == other.spanStart &&
+      spanEnd == other.spanEnd;
 }
 
 typedef Hyphenation = List<String> Function(String word);

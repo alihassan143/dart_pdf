@@ -76,6 +76,10 @@ class FlexContext extends WidgetContext {
 
   @override
   String toString() => '$runtimeType first:$firstChild last:$lastChild';
+
+  @override
+  bool isEqualTo(FlexContext other) =>
+      firstChild == other.firstChild && lastChild == other.lastChild;
 }
 
 class Flex extends MultiChildWidget with SpanningWidget {

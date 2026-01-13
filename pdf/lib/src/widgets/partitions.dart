@@ -99,6 +99,27 @@ class PartitionsContext extends WidgetContext {
 
     return context;
   }
+
+  @override
+  bool isEqualTo(PartitionsContext other) {
+    if (partitionContext.length != other.partitionContext.length) {
+      return false;
+    }
+    for (var index = 0; index < partitionContext.length; index++) {
+      final a = partitionContext[index];
+      final b = other.partitionContext[index];
+      if (a == null && b == null) {
+        continue;
+      }
+      if (a == null || b == null) {
+        return false;
+      }
+      if (!a.isEqualTo(b)) {
+        return false;
+      }
+    }
+    return true;
+  }
 }
 
 class Partitions extends Widget with SpanningWidget {

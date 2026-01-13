@@ -145,6 +145,10 @@ class TableContext extends WidgetContext {
 
   @override
   String toString() => '$runtimeType firstLine: $firstLine lastLine: $lastLine';
+
+  @override
+  bool isEqualTo(TableContext other) =>
+      firstLine == other.firstLine && lastLine == other.lastLine;
 }
 
 class ColumnLayout {
